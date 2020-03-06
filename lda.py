@@ -5,6 +5,13 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
+def createCVData(dataset, folds):
+    arr = np.arange(dataset.shape[0])
+    np.random.shuffle(arr)
+    foldsize = int(dataset.shape[0] / folds) + 1
+    shuffled = np.array([arr[foldsize*i:foldsize*(i+1)] for i in range(folds)])
+    return shuffled
+
 def sigmoid(x):
   return 1 / (1 + math.exp(-x))
 
@@ -68,3 +75,12 @@ predictions = np.array([predict(test, Batac, Vc) for test in X_train]) >= 0.5
 print("\nAccuracy Train:",round((predictions == y_train).astype('uint8').sum()/y_train.size,2))
 predictions = np.array([predict(test, Batac, Vc) for test in X_test]) >= 0.5
 print("Accuracy Validation:",round((predictions == y_test).astype('uint8').sum()/y_test.size,2))
+
+folds = 10
+for i, fold in enumerate(createCVData(X, folds)):
+    XValid, yValid = X[fold], y[fold]
+    XTrain = X[[index for index in range(X.shape[0]) if not index in fold]]
+    yTrain = y[[index for index in range(y.shape[0]) if not index in fold]]
+
+    predictions = np.array([predict(test, Batac, Vc) for test in XValid]) >= 0.5
+    print("\nAccuracy Valid:",round((predictions == yValid).astype('uint8').sum()/yValid.size,2))
