@@ -1,60 +1,39 @@
 import pandas as pd
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 
 sales = pd.read_csv("data/vgsales.csv")
 print(sales.info())
+# print(sales.Publisher.value_counts())
 
-# # Drop data that is not needed
-drop = ["Rank", "Name", "Platform", "Year", "Genre", "Global_Sales"]
-sales_droped = sales.drop(labels=drop, axis = 1)
-print(sales_droped.info())
+# Electronic Arts                 1351
+# Activision                       975
+# Namco Bandai Games               932
+# Ubisoft                          921
+# Konami Digital Entertainment     832
 
-EA = sales_droped[sales_droped.Publisher == 'Electronic Arts']
-ACT = sales_droped[sales_droped.Publisher == 'Activision']
-Total = EA.append(ACT)
-print(EA.info())
-print(ACT.info())
+# Drop data that is not needed
+drop = ["Name", "Year", "Platform", "Genre", "Global_Sales"]
+sales = sales.drop(labels=drop, axis = 1)
+# print(sales.info())
+
+Class1 = sales[sales.Publisher == 'Nintendo']
+Class2 = sales[sales.Publisher == 'Ubisoft']
+Total = Class1.append(Class2)
+# print(Class1.info())
+# print(Class2.info())
 print(Total.info())
 
+le = LabelEncoder()
+le.fit(Total.Publisher.values)
+Total.Publisher = le.transform(Total.Publisher.values)
 
-# drop = ["Rank", "Name", "Platform", "Year", "Genre", "Global_Sales"]
-# sales_droped = sales.drop(labels=drop, axis = 1)
-# print(sales_droped.info())
-# print(sales_droped.describe())
-
-# sales_droped.hist(bins=20)
+# Total.hist(bins=20)
 # plt.show()
 
-# corr_matrix = titanic_filled.corr()
-# corr_relationships = corr_matrix["Survived"].sort_values(ascending = False)
-# print(corr_relationships)
-#
-# pd.plotting.scatter_matrix(titanic_filled[corr_relationships.index])
-# plt.show()
+corr_matrix = Total.corr()
+corr_relationships = corr_matrix["Publisher"].sort_values(ascending = False)
+print(corr_relationships)
 
-# titanic_labels = titanic_filled["Survived"]
-# titanic_filled_data = titanic_filled.drop(labels="Survived", axis = 1)
-#
-# num_pipeline = Pipeline([
-#     ('std_scaler', StandardScaler())
-# ])
-#
-# titanic_data = num_pipeline.fit_transform(titanic_filled_data)
-#
-# from sklearn.decomposition import PCA
-# pca = PCA(n_components = 2)
-# pca.fit(titanic_data)
-# PCAX = pca.transform(titanic_data)
-# print(pca.explained_variance_ratio_.sum())
-# plt.scatter(PCAX[:, 0], PCAX[:, 1], c = titanic_labels)
-# plt.show()
-#
-# from sklearn.manifold import TSNE
-# tsne = TSNE(n_components=2, verbose=0, perplexity=100, n_iter=1000)
-# tsne_results = tsne.fit_transform(titanic_data)
-# plt.scatter(PCAX[:, 0], PCAX[:, 1], c=titanic_labels)
+# pd.plotting.scatter_matrix(Total[corr_relationships.index])
 # plt.show()
