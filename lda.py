@@ -2,7 +2,6 @@ import math
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
@@ -14,34 +13,28 @@ def predict(x, Batac, Vc):
 
 # Import data
 sales = pd.read_csv("data/vgsales.csv").drop(labels=["Name", "Year", "Platform", "Genre", "Global_Sales"], axis = 1)
-# sales['Tenant'].replace('', np.nan, inplace=True)
-# sales.dropna(subset=['Tenant'], inplace=True)
+sales['Publisher'].replace('', np.nan, inplace=True)
+sales.dropna(subset=['Publisher'], inplace=True)
+
 # Pull out two calsses and append the two
-# Ubisoft                          921
 # Nintendo                         703
+# Activision                       975
 Class1 = sales[sales.Publisher == 'Nintendo']
-Class2 = sales[sales.Publisher == 'Ubisoft']
+Class2 = sales[sales.Publisher == 'Activision']
 Xfull = Class1.append(Class2)
 
-n = 1624 # n = 921 + 703
+n = Xfull.shape[0] # n = 921 + 703
 d = 5 # d = (Rank, NA, EU, JP, Other)
 
 # Get and encode publisher
 y = Xfull.Publisher
 Nc = y.value_counts().values
 y = LabelEncoder().fit_transform(y.values)
-print(y)
 PIc = Nc / n
 
 X = Xfull.drop(labels=["Publisher"], axis = 1).values
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
-
-min_max_scaler = MinMaxScaler()
-X_train = min_max_scaler.fit_transform(X_train)
-X_train = pd.DataFrame(X_train)
-# X_test = min_max_scaler.transform(X_test)
-# X_test = pd.DataFrame(X_test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
 print('')
 print('X.shape:', X.shape)
@@ -71,9 +64,7 @@ Vc = np.array([(-1/2) * np.dot(Uc[0].transpose(), np.dot(np.linalg.inv(SigmaHatc
 
 print("Vc:", Vc.shape)
 
-
-# testDataN = [1, 41.49, 29.02, 3.77, 8.46]
+predictions = np.array([predict(test, Batac, Vc) for test in X_train]) >= 0.5
+print("\nAccuracy Train:",round((predictions == y_train).astype('uint8').sum()/y_train.size,2))
 predictions = np.array([predict(test, Batac, Vc) for test in X_test]) >= 0.5
-
-print("")
-print(round((predictions == y_test).astype('uint8').sum()/y_test.size,2))
+print("Accuracy Validation:",round((predictions == y_test).astype('uint8').sum()/y_test.size,2))
