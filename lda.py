@@ -2,6 +2,7 @@ import math
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
@@ -18,6 +19,97 @@ def sigmoid(x):
 def predict(x, Batac, Vc):
     return sigmoid(np.dot(np.transpose(Batac[1] - Batac[0]), x) + (Vc[1] - Vc[0]))
 
+class LDA:
+    def __init__(self, verbose = 0):
+        self.verbose = verbose
+        return
+
+    def fitpd(self, data):
+        self.data = data
+        Class1 = self.data[sales.Publisher == 'Nintendo']
+        Class2 = self.data[sales.Publisher == 'Activision']
+        self.Xfull = Class1.append(Class2)
+        self.n = self.Xfull.shape[0]
+        self.d = self.Xfull.shape[1] - 1
+        self.y = self.Xfull.Publisher
+        self.Nc = self.y.value_counts().values
+        self.y = LabelEncoder().fit_transform(self.y.values)
+        self.PIc = self.Nc / self.n
+        self.X = self.Xfull.drop(labels=["Publisher"], axis = 1).values
+        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
+        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
+        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
+        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
+        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
+        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
+        self.Batac = np.array([np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0]), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])])
+        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
+                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+        self.printout()
+        return
+
+    def fitXy(self, X, y):
+        self.X = X
+        self.n = self.X.shape[0]
+        self.d = self.X.shape[1] - 1
+        self.y = y
+        self.Nc = np.array([self.n - y.sum(), y.sum()])
+        self.PIc = self.Nc / self.n
+        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
+        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
+        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
+        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
+        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
+        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
+        self.Batac = np.array([np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0]), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])])
+        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
+                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+        self.printout()
+        return
+
+
+    def fitXyShared(self, X, y):
+        self.X = X
+        self.n = self.X.shape[0]
+        self.d = self.X.shape[1] - 1
+        self.y = y
+        self.Nc = np.array([self.n - y.sum(), y.sum()])
+        self.PIc = self.Nc / self.n
+        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
+        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
+        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
+        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
+        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
+        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
+        self.shared = self.sharedCovMatrix()
+        self.Batac = np.array([np.dot(np.linalg.inv(self.shared), self.Uc[0]), np.dot(np.linalg.inv(self.shared), self.Uc[1])])
+        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
+                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+        self.printout()
+        return
+
+    def printout(self):
+        if self.verbose > 0:
+            print('')
+            print('X.shape:', self.X.shape)
+            print('y.shape:', self.y.shape)
+            print('')
+            print('n   :', self.n)
+            print('Nc  :', self.Nc)
+            print('PIc :', self.PIc)
+            print('')
+            print("Uc       :", self.Uc.shape)
+            print("SigmaHatc:", self.SigmaHatc.shape)
+            print("\nBatac:", self.Batac.shape)
+            print("Vc:", self.Vc.shape)
+        return
+
+    def predict(self, x):
+        return sigmoid(np.dot(np.transpose(self.Batac[1] - self.Batac[0]), x) + (self.Vc[1] - self.Vc[0]))
+
+    def sharedCovMatrix(self):
+        return np.array(self.Nc[0] * self.SigmaHatc[0] + self.Nc[1] * self.SigmaHatc[1]) / (self.Nc.sum() - self.Nc.size)
+
 # Import data
 sales = pd.read_csv("data/vgsales.csv").drop(labels=["Name", "Year", "Platform", "Genre", "Global_Sales"], axis = 1)
 sales['Publisher'].replace('', np.nan, inplace=True)
@@ -30,57 +122,25 @@ Class1 = sales[sales.Publisher == 'Nintendo']
 Class2 = sales[sales.Publisher == 'Activision']
 Xfull = Class1.append(Class2)
 
-n = Xfull.shape[0] # n = 921 + 703
-d = 5 # d = (Rank, NA, EU, JP, Other)
-
-# Get and encode publisher
-y = Xfull.Publisher
-Nc = y.value_counts().values
-y = LabelEncoder().fit_transform(y.values)
-PIc = Nc / n
-
+y = LabelEncoder().fit_transform(Xfull.Publisher.values)
 X = Xfull.drop(labels=["Publisher"], axis = 1).values
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
+min_max_scaler = MinMaxScaler()
+X = min_max_scaler.fit_transform(X)
 
-print('')
-print('X.shape:', X.shape)
-print('y.shape:', y.shape)
-print('')
-print('n   :', n)
-print('Nc  :', Nc)
-print('PIc :', PIc)
-print('')
-
-Uc = np.array([np.mean(X_train[y_train == 0], axis=0), np.mean(X_train[y_train == 1], axis=0)])
-print("Uc       :", Uc.shape)
-
-# Calc SigmaHatc
-SigmaS1 = X_train[y_train == 0] - Uc[0]
-SigmaSub1 = np.dot(SigmaS1.transpose(), SigmaS1) / Nc[0]
-SigmaS2 = X_train[y_train == 1] - Uc[1]
-SigmaSub2 = np.dot(SigmaS2.transpose(), SigmaS2) / Nc[1]
-SigmaHatc = np.array([SigmaSub1, SigmaSub2])
-print("SigmaHatc:", SigmaHatc.shape)
-
-Batac = np.array([np.dot(np.linalg.inv(SigmaHatc[0]), Uc[0]), np.dot(np.linalg.inv(SigmaHatc[1]), Uc[1])])
-print("\nBatac:", Batac.shape)
-
-Vc = np.array([(-1/2) * np.dot(Uc[0].transpose(), np.dot(np.linalg.inv(SigmaHatc[0]), Uc[0])) + np.log(PIc[0]),
-               (-1/2) * np.dot(Uc[1].transpose(), np.dot(np.linalg.inv(SigmaHatc[1]), Uc[1])) + np.log(PIc[1])])
-
-print("Vc:", Vc.shape)
-
-predictions = np.array([predict(test, Batac, Vc) for test in X_train]) >= 0.5
-print("\nAccuracy Train:",round((predictions == y_train).astype('uint8').sum()/y_train.size,2))
-predictions = np.array([predict(test, Batac, Vc) for test in X_test]) >= 0.5
-print("Accuracy Validation:",round((predictions == y_test).astype('uint8').sum()/y_test.size,2))
-
+averageAccuracy = 0
 folds = 10
 for i, fold in enumerate(createCVData(X, folds)):
     XValid, yValid = X[fold], y[fold]
     XTrain = X[[index for index in range(X.shape[0]) if not index in fold]]
     yTrain = y[[index for index in range(y.shape[0]) if not index in fold]]
 
-    predictions = np.array([predict(test, Batac, Vc) for test in XValid]) >= 0.5
-    print("\nAccuracy Valid:",round((predictions == yValid).astype('uint8').sum()/yValid.size,2))
+    lda = LDA(0)
+    # lda.fitXy(XTrain, yTrain)
+    lda.fitXyShared(XTrain, yTrain)
+    predictions = np.array([lda.predict(test) for test in XValid]) >= 0.5
+    acc = round((predictions == yValid).astype('uint8').sum()/yValid.size,2)
+    print("Fold", i, ":", acc)
+    averageAccuracy += acc
+
+print("\nAverage:", round(averageAccuracy/folds,2))
