@@ -34,17 +34,9 @@ class LDA:
         self.y = self.Xfull.Publisher
         self.Nc = self.y.value_counts().values
         self.y = LabelEncoder().fit_transform(self.y.values)
-        self.PIc = self.Nc / self.n
-        self.X = self.Xfull.drop(labels=["Publisher"], axis = 1).values
-        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
-        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
-        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
-        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
-        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
-        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
-        self.Batac = np.array([np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0]), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])])
-        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
-                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+
+        self.ldaCalc()
+
         self.printout()
         return
 
@@ -53,20 +45,11 @@ class LDA:
         self.n = self.X.shape[0]
         self.d = self.X.shape[1] - 1
         self.y = y
-        self.Nc = np.array([self.n - y.sum(), y.sum()])
-        self.PIc = self.Nc / self.n
-        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
-        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
-        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
-        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
-        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
-        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
-        self.Batac = np.array([np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0]), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])])
-        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
-                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+
+        self.ldaCalc()
+
         self.printout()
         return
-
 
     def fitXyShared(self, X, y):
         self.X = X
@@ -87,6 +70,19 @@ class LDA:
                             (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
         self.printout()
         return
+
+    def ldaCalc(self):
+        self.Nc = np.array([self.n - y.sum(), y.sum()])
+        self.PIc = self.Nc / self.n
+        self.Uc = np.array([np.mean(self.X[self.y == 0], axis=0), np.mean(self.X[self.y == 1], axis=0)])
+        self.SigmaS1 = self.X[self.y == 0] - self.Uc[0]
+        self.SigmaSub1 = np.dot(self.SigmaS1.transpose(), self.SigmaS1) / self.Nc[0]
+        self.SigmaS2 = self.X[self.y == 1] - self.Uc[1]
+        self.SigmaSub2 = np.dot(self.SigmaS2.transpose(), self.SigmaS2) / self.Nc[1]
+        self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
+        self.Batac = np.array([np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0]), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])])
+        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
+                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
 
     def printout(self):
         if self.verbose > 0:
@@ -136,8 +132,8 @@ for i, fold in enumerate(createCVData(X, folds)):
     yTrain = y[[index for index in range(y.shape[0]) if not index in fold]]
 
     lda = LDA(0)
-    # lda.fitXy(XTrain, yTrain)
-    lda.fitXyShared(XTrain, yTrain)
+    lda.fitXy(XTrain, yTrain)
+    # lda.fitXyShared(XTrain, yTrain)
     predictions = np.array([lda.predict(test) for test in XValid]) >= 0.5
     acc = round((predictions == yValid).astype('uint8').sum()/yValid.size,2)
     print("Fold", i, ":", acc)
