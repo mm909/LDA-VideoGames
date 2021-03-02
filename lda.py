@@ -1,6 +1,7 @@
 import math
 import pandas as pd
 import numpy as np
+import sklearn
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
@@ -34,9 +35,7 @@ class LDA:
         self.y = self.Xfull.Publisher
         self.Nc = self.y.value_counts().values
         self.y = LabelEncoder().fit_transform(self.y.values)
-
         self.ldaCalc()
-
         self.printout()
         return
 
@@ -45,9 +44,7 @@ class LDA:
         self.n = self.X.shape[0]
         self.d = self.X.shape[1] - 1
         self.y = y
-
         self.ldaCalc()
-
         self.printout()
         return
 
@@ -66,8 +63,8 @@ class LDA:
         self.SigmaHatc = np.array([self.SigmaSub1, self.SigmaSub2])
         self.shared = self.sharedCovMatrix()
         self.Batac = np.array([np.dot(np.linalg.inv(self.shared), self.Uc[0]), np.dot(np.linalg.inv(self.shared), self.Uc[1])])
-        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[0]), self.Uc[0])) + np.log(self.PIc[0]),
-                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.SigmaHatc[1]), self.Uc[1])) + np.log(self.PIc[1])])
+        self.Vc = np.array([(-1/2) * np.dot(self.Uc[0].transpose(), np.dot(np.linalg.inv(self.shared), self.Uc[0])) + np.log(self.PIc[0]),
+                            (-1/2) * np.dot(self.Uc[1].transpose(), np.dot(np.linalg.inv(self.shared), self.Uc[1])) + np.log(self.PIc[1])])
         self.printout()
         return
 
@@ -114,12 +111,13 @@ sales.dropna(subset=['Publisher'], inplace=True)
 # Pull out two calsses and append the two
 # Nintendo                         703
 # Activision                       975
-Class1 = sales[sales.Publisher == 'Nintendo']
-Class2 = sales[sales.Publisher == 'Activision']
+Class2 = sales[sales.Publisher == 'Nintendo']
+Class1 = sales[sales.Publisher == 'Activision']
 Xfull = Class1.append(Class2)
 
 y = LabelEncoder().fit_transform(Xfull.Publisher.values)
 X = Xfull.drop(labels=["Publisher"], axis = 1).values
+#X = sklearn.preprocessing.StandardScaler().fit(X).transform(X)
 
 min_max_scaler = MinMaxScaler()
 X = min_max_scaler.fit_transform(X)
@@ -133,7 +131,7 @@ for i, fold in enumerate(createCVData(X, folds)):
 
     lda = LDA(0)
     lda.fitXy(XTrain, yTrain)
-    # lda.fitXyShared(XTrain, yTrain)
+    #lda.fitXyShared(XTrain, yTrain)
     predictions = np.array([lda.predict(test) for test in XValid]) >= 0.5
     acc = round((predictions == yValid).astype('uint8').sum()/yValid.size,2)
     print("Fold", i, ":", acc)
